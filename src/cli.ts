@@ -1,6 +1,6 @@
+#!/usr/bin/env node
 // Copyright (c) 2026 Vikas Godara
 // SPDX-License-Identifier: MIT
-#!/usr/bin/env node
 import { existsSync, writeFileSync } from "node:fs";
 import { buildStats } from "./engine.ts";
 import { buildStatsFromDb, resolveDatabasePath } from "./db-source.ts";

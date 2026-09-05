@@ -1,6 +1,6 @@
+#!/usr/bin/env node
 // Copyright (c) 2026 Vikas Godara
 // SPDX-License-Identifier: MIT
-#!/usr/bin/env node
 /**
  * Generates a synthetic opencode storage tree under ./.mock-opencode-data
  * (or MOCK_DATA_DIR) that mirrors the real on-disk shape:
