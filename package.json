@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@godaravikas/opencode-velocity",
+  "version": "0.1.0",
+  "description": "opencode TUI plugin + CLI: cross-project session/token/cost dashboard read straight from opencode's local storage.",
+  "homepage": "https://github.com/godaravikas/opencode-velocity#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/godaravikas/opencode-velocity.git"
+  },
+  "bugs": {
+    "url": "https://github.com/godaravikas/opencode-velocity/issues"
+  },
+  "type": "module",
+  "main": "dist/velocity.js",
+  "exports": {
+    ".": "./dist/velocity.js",
+    "./tui": "./dist/velocity.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "tui",
+    "tokens",
+    "cost"
+  ],
+  "license": "MIT",
+  "author": "Vikas Godara <https://github.com/godaravikas>",
+  "bin": {
+    "opencode-velocity": "./src/cli.ts",
+    "velocity": "./src/cli.ts"
+  },
+  "scripts": {
+    "report": "bun run src/cli.ts",
+    "report:json": "bun run src/cli.ts --json",
+    "mock": "bun run scripts/generate-mock-data.ts",
+    "test": "bash test/run-local-test.sh",
+    "build": "bun run build.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=1.18.16",
+    "@opencode-ai/sdk": ">=1.18.16"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.18.16",
+    "@opencode-ai/sdk": "^1.18.16",
+    "@opentui/core": "^0.5.1",
+    "@opentui/keymap": "^0.5.1",
+    "@opentui/solid": "^0.5.1",
+    "bun-types": "latest",
+    "solid-js": "^1.9.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}
