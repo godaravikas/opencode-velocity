@@ -170,6 +170,11 @@ export interface Averages {
   costPerMessage: number;
 }
 
+export interface DateRange {
+  start: string;
+  end: string;
+}
+
 export function emptyAverages(): Averages {
   return { tokensPerSession: 0, costPerSession: 0, messagesPerSession: 0, tokensPerMessage: 0, costPerMessage: 0 };
 }
@@ -200,6 +205,7 @@ export interface ProjectStats {
 export interface OverallStats {
   dataDir: string;
   generatedAt: number;
+  dateRange?: DateRange;
   projectCount: number;
   /** Number of top-level (non-subagent) sessions across all projects. */
   sessionCount: number;

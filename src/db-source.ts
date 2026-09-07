@@ -4,8 +4,9 @@ import { Database } from "bun:sqlite";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, normalize, sep } from "node:path";
 import { aggregate } from "./aggregate.ts";
+import { dateRangeBounds, epochMs } from "./date-range.ts";
 import { resolveDataDirs } from "./storage.ts";
-import type { NormalizedData, NormalizedMessage, NormalizedProject, NormalizedSession, OverallStats, TokenTotals } from "./types.ts";
+import type { DateRange, NormalizedData, NormalizedMessage, NormalizedProject, NormalizedSession, OverallStats, TokenTotals } from "./types.ts";
 import { emptyTokenTotals } from "./types.ts";
 
 function debugLog(msg: string) {
@@ -33,7 +34,10 @@ export function resolveDatabasePath(dataDir?: string): string {
     const normalized = normalize(dir);
     const stateMarker = `${sep}state${sep}`;
     if (normalized.includes(stateMarker)) {
-      paths.push(join(normalized.replace(stateMarker, `${sep}share${sep}`), "opencode.db"));
+      // OpenCode exposes a state path in the TUI API, while the report
+      // database is stored under the corresponding share path. Prefer that
+      // database over a state directory that may contain another SQLite file.
+      paths.unshift(join(normalized.replace(stateMarker, `${sep}share${sep}`), "opencode.db"));
     }
     return paths;
   });
@@ -42,8 +46,9 @@ export function resolveDatabasePath(dataDir?: string): string {
   throw new Error(`Could not find the OpenCode SQLite database. Checked: ${candidates.join(", ")}`);
 }
 
-export async function buildStatsFromDb(dataDir?: string): Promise<OverallStats> {
+export async function buildStatsFromDb(dataDir?: string, options: { dateRange?: DateRange } = {}): Promise<OverallStats> {
   const dbPath = resolveDatabasePath(dataDir);
+  const rangeBounds = options.dateRange ? dateRangeBounds(options.dateRange) : undefined;
   let db: Database;
   try {
     db = new Database(dbPath, { readonly: true, create: false });
@@ -122,6 +127,10 @@ export async function buildStatsFromDb(dataDir?: string): Promise<OverallStats> 
     // First pass: collect all sessions by their directory
     const sessionsByDir = new Map<string, NormalizedSession[]>();
     for (const rawSession of rawSessions) {
+      const activityTime = epochMs(rawSession.time_updated ?? rawSession.time_created);
+      if (rangeBounds && activityTime !== undefined && (activityTime < rangeBounds.since || activityTime > rangeBounds.until)) {
+        continue;
+      }
       const dir = rawSession.directory;
       if (!sessionsByDir.has(dir)) {
         sessionsByDir.set(dir, []);
@@ -254,7 +263,7 @@ export async function buildStatsFromDb(dataDir?: string): Promise<OverallStats> 
     const totalSessions = data.projects.reduce((a, p) => a + p.sessions.length, 0);
     debugLog(`[velocity] DB done: ${data.projects.length} projects, ${totalSessions} total sessions`);
 
-    return aggregate(data);
+    return aggregate(data, options.dateRange);
   } finally {
     db.close();
   }

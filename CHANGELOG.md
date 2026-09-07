@@ -1,10 +1,17 @@
 # Changelog
 
-## [0.1.0] - First release
+## v0.2.0 -  2026-09-07
+
+### Features
+
+- **Date range filter:** Press `f` in the `/velocity` TUI to open a calendar dialog and filter the report to a start/end date range.
+
+
+## v0.1.0 -  2026-09-05
 
 
 
-### Main Features
+### Features
 
 - **OpenCode TUI Report:** Open `/velocity` in the OpenCode TUI for an interactive report. When you exit, you’ll return to the same session.
 - **Multiple output formats:** View formatted terminal output or download detailed HTML report.

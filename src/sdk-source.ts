@@ -3,7 +3,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { aggregate } from "./aggregate.ts";
-import type { NormalizedData, NormalizedMessage, NormalizedProject, NormalizedSession, OverallStats, TokenTotals } from "./types.ts";
+import { dateRangeBounds, epochMs } from "./date-range.ts";
+import type { DateRange, NormalizedData, NormalizedMessage, NormalizedProject, NormalizedSession, OverallStats, TokenTotals } from "./types.ts";
 import { emptyTokenTotals } from "./types.ts";
 
 function debugLog(msg: string) {
@@ -219,7 +220,7 @@ function dedupeSessions(sessions: RawSessionLike[]): RawSessionLike[] {
   });
 }
 
-export async function buildStatsFromSdk(client: MinimalSdkClient): Promise<OverallStats> {
+export async function buildStatsFromSdk(client: MinimalSdkClient, options: { dateRange?: DateRange } = {}): Promise<OverallStats> {
   // ── Projects ──────────────────────────────────────────────────────────────
   const rawProjectsResult = client.project?.list ? await tryCalls([
     () => client.project!.list!(),
@@ -280,9 +281,10 @@ export async function buildStatsFromSdk(client: MinimalSdkClient): Promise<Overa
       let page = 0;
       do {
         page++;
-        // The experimental endpoint is global when no directory is passed.
-        // Do not set roots=true: that would exclude subagent sessions.
-        const params: Record<string, unknown> = { limit: 200 };
+        // Explicitly request the cross-project endpoint. Do not pass a
+        // directory, otherwise some OpenCode versions scope results to the
+        // project hosting the TUI.
+        const params: Record<string, unknown> = { limit: 200, roots: false };
         if (cursor !== undefined) params.cursor = cursor;
         const result = await (client.experimental.session.list as (p: unknown) => Promise<unknown>)(params);
         const pageData = extractSessionPage(result);
@@ -336,9 +338,14 @@ export async function buildStatsFromSdk(client: MinimalSdkClient): Promise<Overa
   }
 
   let anyPartsSeen = false;
+  const rangeBounds = options.dateRange ? dateRangeBounds(options.dateRange) : undefined;
 
   for (const rawSession of dedupeSessions(rawSessions)) {
     if (!rawSession.id) continue;
+    const activityTime = epochMs(rawSession.time?.updated ?? rawSession.time?.created);
+    if (rangeBounds && activityTime !== undefined && (activityTime < rangeBounds.since || activityTime > rangeBounds.until)) {
+      continue;
+    }
     const directory = sessionDirectory(rawSession);
     const sessionId = sessionProjectId(rawSession);
     // Global listings from some server versions use a generic project ID.
@@ -425,7 +432,7 @@ export async function buildStatsFromSdk(client: MinimalSdkClient): Promise<Overa
 
   debugLog(`[velocity] SDK: ${rawProjects.length} projects, ${dedupeSessions(rawSessions).length} sessions, ${data.projects.reduce((a, p) => a + p.sessions.length, 0)} total sessions across projects`);
 
-  return aggregate(data);
+  return aggregate(data, options.dateRange);
 }
 
 // ── Message helpers ─────────────────────────────────────────────────────────

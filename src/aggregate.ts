@@ -7,6 +7,7 @@ import {
   emptyTokenTotals,
   mergeToolCalls,
   type Averages,
+  type DateRange,
   type ModelUsage,
   type NormalizedData,
   type NormalizedProject,
@@ -51,7 +52,7 @@ function sumAllTokens(t: TokenTotals): number {
 }
 
 /** Turns NormalizedData (from any source) into the full OverallStats tree. */
-export function aggregate(data: NormalizedData): OverallStats {
+export function aggregate(data: NormalizedData, dateRange?: DateRange): OverallStats {
   const projects: ProjectStats[] = [];
   let overallTokens = emptyTokenTotals();
   let overallCost = 0;
@@ -196,6 +197,7 @@ export function aggregate(data: NormalizedData): OverallStats {
   return {
     dataDir: data.source,
     generatedAt: Date.now(),
+    dateRange,
     projectCount,
     sessionCount: overallSessionCount,
     subagentCount: overallSubagentCount,

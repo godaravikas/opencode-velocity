@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@godaravikas/opencode-velocity",
-  "version": "0.1.0",
-  "description": "opencode TUI plugin + CLI: cross-project session/token/cost dashboard read straight from opencode's local storage.",
+  "version": "0.2.0",
+  "description": "Supercharge your OpenCode workflow with complete visibility into AI usage, effort, and project costs.",
   "homepage": "https://github.com/godaravikas/opencode-velocity#readme",
   "repository": {
     "type": "git",

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 import { basename } from "node:path";
 import { aggregate } from "./aggregate.ts";
+import { dateRangeBounds, epochMs } from "./date-range.ts";
 import {
   discoverStorage,
   loadMessagesForSession,
@@ -11,7 +12,7 @@ import {
   resolveDataDirs,
   type DiscoveredStorage,
 } from "./storage.ts";
-import type { NormalizedData, NormalizedProject, NormalizedSession, OverallStats, RawMessageFile, TokenTotals } from "./types.ts";
+import type { DateRange, NormalizedData, NormalizedProject, NormalizedSession, OverallStats, RawMessageFile, TokenTotals } from "./types.ts";
 import { emptyTokenTotals } from "./types.ts";
 
 export interface BuildStatsOptions {
@@ -21,6 +22,8 @@ export interface BuildStatsOptions {
   since?: number;
   /** Only include sessions active on/before this epoch-ms timestamp. */
   until?: number;
+  /** Only include sessions active within this inclusive local date range. */
+  dateRange?: DateRange;
 }
 
 function tokensFromMessage(msg: RawMessageFile): TokenTotals {
@@ -63,6 +66,9 @@ function projectDisplayName(id: string, worktree?: string): string {
  * point --data-dir at wherever your version actually keeps the JSON tree.
  */
 export function buildStatsFromStorage(options: BuildStatsOptions = {}): OverallStats {
+  const rangeBounds = options.dateRange ? dateRangeBounds(options.dateRange) : undefined;
+  const since = options.since ?? rangeBounds?.since;
+  const until = options.until ?? rangeBounds?.until;
   const dirs = resolveDataDirs(options.dataDir);
   let storage: DiscoveredStorage | undefined;
   for (const d of dirs) {
@@ -99,9 +105,9 @@ export function buildStatsFromStorage(options: BuildStatsOptions = {}): OverallS
   for (const { projectId, raw } of rawSessions) {
     const createdAt = raw.time?.created;
     const updatedAt = raw.time?.updated;
-    const activityTime = updatedAt ?? createdAt;
-    if (options.since !== undefined && activityTime !== undefined && activityTime < options.since) continue;
-    if (options.until !== undefined && activityTime !== undefined && activityTime > options.until) continue;
+    const activityTime = epochMs(updatedAt ?? createdAt);
+    if (since !== undefined && activityTime !== undefined && activityTime < since) continue;
+    if (until !== undefined && activityTime !== undefined && activityTime > until) continue;
 
     const messages = loadMessagesForSession(storage, raw.id);
     const normSession: NormalizedSession = {
@@ -142,7 +148,7 @@ export function buildStatsFromStorage(options: BuildStatsOptions = {}): OverallS
     projects: [...projectsById.values()],
   };
 
-  return aggregate(data);
+  return aggregate(data, options.dateRange);
 }
 
 // Backwards-compatible alias used elsewhere in this repo / by the CLI.

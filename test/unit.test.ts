@@ -4,6 +4,7 @@ import { test, expect, describe, beforeEach, afterEach } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import pkg from "../package.json" with { type: "json" };
 
 import {
   creditsFromCost,
@@ -15,6 +16,7 @@ import { renderHtmlReport } from "../src/html-report.ts";
 import { countProjectsWithSessions, formatReportTimestamp } from "../src/tui.tsx";
 import type { OverallStats } from "../src/types.ts";
 import { emptyTokenTotals, emptyAverages } from "../src/types.ts";
+import { dateRangeBounds, epochMs, formatDateRange, parseDateInput } from "../src/date-range.ts";
 
 // ---------------------------------------------------------------------------
 // 1. Credit conversion tests
@@ -132,10 +134,47 @@ describe("renderHtmlReport", () => {
     expect(html).toContain("$0.02");
   });
 
+  test("contains the plugin version in the footer", () => {
+    expect(renderHtmlReport(minimalStats)).toContain(`@godaravikas/opencode-velocity v${pkg.version}`);
+  });
+
+  test('contains the selected date range in the header', () => {
+    const html = renderHtmlReport({ ...minimalStats, dateRange: { start: "2026-09-01", end: "2026-09-07" } });
+    expect(html).toContain("Date Range: 2026-09-01 - 2026-09-07");
+  });
+
+  test('uses All Available Data when no date range is selected', () => {
+    expect(renderHtmlReport(minimalStats)).toContain("Date Range: All Available Data");
+  });
+
   test('does NOT contain "Session ID" as a table header', () => {
     const html = renderHtmlReport(minimalStats, { dollarsPerCredit: 0.02 });
     // The session table uses "Session" not "Session ID"
     expect(html).not.toContain("<th>Session ID</th>");
+  });
+});
+
+describe("date range helpers", () => {
+  test("accepts valid dates and rejects invalid calendar dates", () => {
+    expect(parseDateInput("2026-09-07")).toBe("2026-09-07");
+    expect(parseDateInput("2026-02-30")).toBeUndefined();
+    expect(parseDateInput("09/07/2026")).toBeUndefined();
+  });
+
+  test("creates inclusive local-day bounds", () => {
+    const bounds = dateRangeBounds({ start: "2026-09-01", end: "2026-09-07" });
+    expect(new Date(bounds.since).getHours()).toBe(0);
+    expect(new Date(bounds.until).getHours()).toBe(23);
+    expect(bounds.until).toBeGreaterThan(bounds.since);
+  });
+
+  test("formats an absent range as All Available Data", () => {
+    expect(formatDateRange()).toBe("All Available Data");
+  });
+
+  test("normalizes Unix seconds and millisecond timestamps", () => {
+    expect(epochMs(1_757_260_800)).toBe(1_757_260_800_000);
+    expect(epochMs(1_757_260_800_000)).toBe(1_757_260_800_000);
   });
 });
 
